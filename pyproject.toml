@@ -26,3 +26,7 @@ dev = [
     "ruff>=0.14.7",
     "xarray[types]>=2025.11.0",
 ]
+
+[tool.ruff]
+extend-exclude = ["examples/mortality_cmip5"]
+
