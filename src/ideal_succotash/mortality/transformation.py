@@ -8,10 +8,6 @@ import xarray as xr
 from xhistogram.xarray import histogram
 
 
-def _no_processing(ds: xr.Dataset) -> xr.Dataset:
-    return ds
-
-
 def _make_annual_tas(ds: xr.Dataset) -> xr.Dataset:
     """
     Compute annual average for 'tas'.
@@ -54,5 +50,7 @@ def _make_tas_20yrmean_annual_histogram(ds: xr.Dataset) -> xr.Dataset:
 
 make_tas_20yrmean_annual_histogram = TransformationStrategy(
     preprocess=_make_tas_20yrmean_annual_histogram,
-    postprocess=_no_processing,
+    postprocess=lambda ds: ds.astype(
+        "float32"
+    ),  # Save space. Don't need float64 precision.
 )
