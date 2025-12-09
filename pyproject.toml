@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Brewster Malevich", email = "bmalevich@rhg.com" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "muuttaa>=0.1.1",
     "numpy>=2.3.5",
