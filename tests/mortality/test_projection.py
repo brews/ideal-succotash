@@ -4,9 +4,9 @@ import pytest
 import xarray as xr
 
 from ideal_succotash.mortality.projection import (
-    mortality_impact_model,
+    mortality_effect_model,
+    mortality_effect_model_gamma,
     uclip,
-    mortality_impact_model_gamma,
 )
 
 
@@ -104,16 +104,15 @@ def climtas():
     return out
 
 
-def test_mortality_impact_model(beta, ageshare, histogram_tas):
+def test_mortality_effect_model(beta, histogram_tas):
     """
-    Test that mortality_impact_model runs through muuttaa.project with generally correct output.
+    Test that mortality_effect_model runs through muuttaa.project with generally correct output.
     """
     expected = xr.Dataset(
         {
-            "impact": (["region", "age_cohort"], np.array([[5.0, 50.0]])),
-            "_effect": (
+            "effect": (
                 ["region", "year", "age_cohort"],
-                np.array([[[2.5, 15.0], [7.5, 65.0]]]),
+                np.array([[[10, 30], [30, 130]]]),
             ),
         },
         coords={
@@ -125,27 +124,23 @@ def test_mortality_impact_model(beta, ageshare, histogram_tas):
 
     actual = project(
         histogram_tas,  # Transformed input climate data.
-        model=mortality_impact_model,
-        parameters=xr.merge([ageshare, beta]),
+        model=mortality_effect_model,
+        parameters=beta,
     )
 
     xr.testing.assert_allclose(actual, expected)
 
 
-def test_mortality_impact_model_gamma_mean(
-    gamma, ageshare, loggdppc, histogram_tas, climtas
-):
+def test_mortality_effect_model_gamma_mean(gamma, loggdppc, histogram_tas, climtas):
     """
-    Test that mortality_impact_model_gamma runs through muuttaa.project.
+    Test that mortality_effect_model_gamma runs through muuttaa.project.
      Checks for generally correct output using mean gamma as input.
     """
     # Build up what we expect output to be.
-    ex_i = np.array([[5.11400338e7, 2.22185568e8]])
-    ex_e = np.array([[[1.13169512e7, 4.79985275e7], [6.24569850e7, 2.70184095e8]]])
+    ex_e = np.array([[[4.5267805e7, 9.5997055e7], [2.4982794e8, 5.4036819e8]]])
     expected = xr.Dataset(
         {
-            "impact": (["region", "age_cohort"], ex_i),
-            "_effect": (["region", "year", "age_cohort"], ex_e),
+            "effect": (["region", "year", "age_cohort"], ex_e),
         },
         coords={
             "region": np.array(["foobar"]),
@@ -159,40 +154,35 @@ def test_mortality_impact_model_gamma_mean(
     # Using rename_vars because model expects "gamma" variable, not "gamma_mean".
     params = xr.merge(
         [
-            ageshare,
             loggdppc,
             gamma[["gamma_mean"]].rename_vars({"gamma_mean": "gamma"}),
         ],
     )
 
     actual = project(
-        transformed_input, model=mortality_impact_model_gamma, parameters=params
+        transformed_input, model=mortality_effect_model_gamma, parameters=params
     )
 
     xr.testing.assert_allclose(actual, expected)
 
 
-def test_mortality_impact_model_gamma_sampled(
-    gamma, ageshare, loggdppc, histogram_tas, climtas
-):
+def test_mortality_effect_model_gamma_sampled(gamma, loggdppc, histogram_tas, climtas):
     """
-    Test that mortality_impact_model_gamma runs through muuttaa.project.
+    Test that mortality_effect_model_gamma runs through muuttaa.project.
     Checks for generally correct output using sampled gamma as input.
     """
     # Build up what we expect output to be.
-    ex_i = np.array([[[5.11400338e7, 2.22185568e8], [1.71045534e8, 4.61996568e8]]])
     ex_e = np.array(
         [
             [
-                [[1.13169512e7, 4.79985275e7], [3.66815762e7, 9.87277775e7]],
-                [[6.24569850e7, 2.70184095e8], [2.07727110e8, 5.60724345e8]],
+                [[4.52678050e7, 9.59970550e7], [1.46726305e8, 1.97455555e8]],
+                [[2.49827940e8, 5.40368190e8], [8.30908440e8, 1.12144869e9]],
             ]
         ]
     )
     expected = xr.Dataset(
         {
-            "impact": (["region", "sample", "age_cohort"], ex_i),
-            "_effect": (["region", "year", "sample", "age_cohort"], ex_e),
+            "effect": (["region", "year", "sample", "age_cohort"], ex_e),
         },
         coords={
             "region": np.array(["foobar"]),
@@ -207,14 +197,13 @@ def test_mortality_impact_model_gamma_sampled(
     # Using rename_vars because model expects "gamma" variable, not "gamma_mean".
     params = xr.merge(
         [
-            ageshare,
             loggdppc,
             gamma[["gamma_sampled"]].rename_vars({"gamma_sampled": "gamma"}),
         ],
     )
 
     actual = project(
-        transformed_input, model=mortality_impact_model_gamma, parameters=params
+        transformed_input, model=mortality_effect_model_gamma, parameters=params
     )
 
     xr.testing.assert_allclose(actual, expected)

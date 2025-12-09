@@ -11,20 +11,16 @@ def _no_processing(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def _mortality_impact_model(ds: xr.Dataset) -> xr.Dataset:
-    # dot product of betas and t_bins * census tract age-spec populations
-    _effect = (ds["histogram_tas"] * ds["beta"]).sum(dim="tas_bin") * ds["share"]
-
-    # impacts are difference of future - historical effect
-    impact = _effect.sel(year=2050) - _effect.sel(year=2020)
-
-    return xr.Dataset({"impact": impact, "_effect": _effect})
+def _mortality_effect_model(ds: xr.Dataset) -> xr.Dataset:
+    # dot product of betas and t_bins
+    effect = (ds["histogram_tas"] * ds["beta"]).sum(dim="tas_bin")
+    return xr.Dataset({"effect": effect})
 
 
 # If you already have beta.
-mortality_impact_model = Projector(
+mortality_effect_model = Projector(
     preprocess=_no_processing,
-    project=_mortality_impact_model,
+    project=_mortality_effect_model,
     postprocess=_no_processing,
 )
 
@@ -142,8 +138,8 @@ def _beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
 
 
 # If you have gamma and need to compute beta.
-mortality_impact_model_gamma = Projector(
+mortality_effect_model_gamma = Projector(
     preprocess=_beta_from_gamma,  # Not sure this should actually be a preprocess but I'm lazy.
-    project=_mortality_impact_model,
+    project=_mortality_effect_model,
     postprocess=_no_processing,
 )
