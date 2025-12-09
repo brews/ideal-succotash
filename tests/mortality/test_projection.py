@@ -7,7 +7,6 @@ from ideal_succotash.mortality.projection import (
     mortality_impact_model,
     uclip,
     mortality_impact_model_gamma,
-    mortality_valuation_model,
 )
 
 
@@ -250,60 +249,3 @@ def test_uclip():
     actual = uclip(da_in, dim=dim0_name)
 
     xr.testing.assert_equal(actual, expected)
-
-
-def test_mortality_valuation_model():
-    """
-    Test mortality_valuation_model can run through muuttaa.project.
-    Does basic check of output.
-    """
-    expected = xr.Dataset(
-        {
-            "damages_total": (
-                ["region", "age_cohort"],
-                np.array([[49_632.625, 2_481_631.25]]),
-            ),
-            "damages_pc": (
-                ["region", "age_cohort"],
-                np.array([[496.32625, 4963.2625]]),
-            ),
-            "damages_pincome": (
-                ["region", "age_cohort"],
-                np.array([[0.0064458, 0.06445795]]),
-            ),
-        },
-        coords={
-            "region": np.array(["foobar"]),
-            "age_cohort": np.array(["age1", "age2"]),
-        },
-    )
-
-    impact = xr.Dataset(
-        {
-            "impact": (["region", "age_cohort"], np.array([[5.0, 50.0]])),
-        },
-        coords={
-            "region": np.array(["foobar"]),
-            "age_cohort": np.array(["age1", "age2"]),
-        },
-    )
-
-    params = xr.Dataset(
-        {
-            "vsl": 9_926_525.0,  # set VSL at EPA value of $7.4 M in 2006$ converted to 2019$ estimate
-            "scale": 1.0 / 100_000.0,  # convert to impacts per person
-            "pop": (["age_cohort", "region"], [[100.0], [500.0]]),
-            "pci": (
-                ["region"],
-                [77_000.0],
-            ),
-        },
-        coords={
-            "region": np.array(["foobar"]),
-            "age_cohort": np.array(["age1", "age2"]),
-        },
-    )
-
-    actual = project(impact, model=mortality_valuation_model, parameters=params)
-
-    xr.testing.assert_allclose(actual, expected)

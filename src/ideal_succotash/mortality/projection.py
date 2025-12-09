@@ -147,30 +147,3 @@ mortality_impact_model_gamma = Projector(
     project=_mortality_impact_model,
     postprocess=_no_processing,
 )
-
-
-def _mortality_valuation_model(ds: xr.Dataset) -> xr.Dataset:
-    # Total damages are age-spec physical impacts (deaths/100k) * age-spec population * scale * vsl
-    damages_total = ds["impact"] * ds["pop"] * ds["scale"] * ds["vsl"]
-
-    # Damages per capita = total damages / population
-    damages_pc = ds["impact"] * ds["scale"] * ds["vsl"]
-
-    # Damages as share of average tract income = damages per capita / income per capita
-    damages_pincome = damages_pc / ds["pci"]
-
-    out = xr.Dataset(
-        {
-            "damages_total": damages_total,
-            "damages_pc": damages_pc,
-            "damages_pincome": damages_pincome,
-        }
-    )
-    return out
-
-
-mortality_valuation_model = Projector(
-    preprocess=_no_processing,
-    project=_mortality_valuation_model,
-    postprocess=_no_processing,
-)
