@@ -105,17 +105,16 @@ def _beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
     Returns a copy of `ds` with new "beta" variable.
     """
     # The ds["gamma"] has a "covarname" dimension with one element for each of the model's covariates.
-    # This unpacks "covarname" so each covariate gamma coefficient is its own variable.
-    # Doing this to try to make math easier to read.
-    gamma_1 = ds["gamma"].sel(
-        covarname="1"
-    )  # coefficient for predictor tas (tas histogram bin labels).
-    gamma_climtas = ds["gamma"].sel(
-        covarname="climtas"
-    )  # coefficient for climtas covariate.
-    gamma_loggdppc = ds["gamma"].sel(
-        covarname="loggdppc"
-    )  # coefficient log of GDP per capita covariate.
+
+    # Coefficient for predictor tas (tas histogram bin labels).
+    gamma_1 = ds["gamma"].sel(covarname="1", drop=True)
+    # coefficient for climtas covariate and coefficient log of GDP per capita covariate.
+    gamma_covar = ds["gamma"].sel(covarname=["climtas", "loggdppc"])
+    # The actual covariates to pair with the coefficients.
+    covar = xr.concat(
+        [ds["climtas"], ds["loggdppc"]],
+        dim=xr.DataArray(["climtas", "loggdppc"], dims="covarname", name="covarname"),
+    )
 
     # Remember, annual histograms as input use histogram bin labels ("tas_bin") as "tas".
     # Creates a "degree" coordinate and populates it with tas^1, tas^2, tas^3, etc. equal to degrees in polynomial.
@@ -124,11 +123,9 @@ def _beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
 
     #  γ_1 * tas + γ_climtas * climtas * tas + γ_loggdppc * loggdppc * tas
     # term for each of the polynomial degrees (∵ "degree" is a coordinate for variables that vary by degree).
-    beta = (
-        gamma_1 * tas
-        + gamma_climtas * ds["climtas"] * tas
-        + gamma_loggdppc * ds["loggdppc"] * tas
-    ).sum("degree")  # Sum together terms for all degrees of polynomial.
+    beta0 = xr.dot(gamma_1, tas, dim=["degree"], optimize=True)
+    beta1 = xr.dot(gamma_covar, covar, tas, dim=["covarname", "degree"], optimize=True)
+    beta = beta0 + beta1
 
     # Uclip beta across tas histogram's bin labels, so basically across range of daily temperature values.
     beta = uclip(beta, dim="tas_bin")
