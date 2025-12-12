@@ -7,6 +7,7 @@ from ideal_succotash.mortality.projection import (
     mortality_effect_model,
     mortality_effect_model_gamma,
     uclip,
+    _uclip_gufunc,
 )
 
 
@@ -209,6 +210,18 @@ def test_mortality_effect_model_gamma_sampled(gamma, loggdppc, histogram_tas, cl
     xr.testing.assert_allclose(actual, expected)
 
 
+def test_uclip_gufunc():
+    """
+    Test the uclip_gufunc passes a simple uclip array
+    """
+    x = np.array([5, 4, 4.5, 3.9, 2, 3, 1, 2.5, 2, 6])
+    expected = np.array([5, 4.5, 4.5, 3.9, 3, 3, 1, 2.5, 2.5, 6]) - 1
+    assert x.shape == expected.shape
+
+    actual = _uclip_gufunc(x, 0, len(x))
+    np.testing.assert_allclose(expected, actual)
+
+
 def test_uclip():
     """
     Test uclip clips input data with multiple regions. That is, with an
@@ -219,14 +232,14 @@ def test_uclip():
     region_coord = ["u", "rising", "falling"]
     dim0_coord = [5, 10, 20, 30, 40]
     da_in = xr.DataArray(
-        [[3, 2, 3, 5, 5], [0, 2, 2, 5, 5], [5, 5, 2, 2, 0]],
+        [[3, 1, 3, 2, 5], [0, 2, 2, 5, 5], [5, 5, 2, 2, 0]],
         coords=[region_coord, dim0_coord],
         dims=["region", dim0_name],
         name="foobar",
-    )
+    ).astype("float64")
     expected = xr.DataArray(
         [
-            [1.0, 0.0, 1.0, 3.0, 3.0],
+            [2.0, 0.0, 2.0, 2.0, 4.0],
             [0.0, 0.0, 0.0, 3.0, 3.0],
             [3.0, 3.0, 0.0, 0.0, 0.0],
         ],
