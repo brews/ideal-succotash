@@ -3,29 +3,50 @@ Logic for mortality impact and damage projection.
 """
 
 from muuttaa import Projector
+import numba
+import numpy as np
 import pandas as pd
 import xarray as xr
 
 
-def _no_processing(ds: xr.Dataset) -> xr.Dataset:
-    return ds
+@numba.njit()
+def _maximum_accumulate(x):
+    rmax = x[0]
+    y = np.empty_like(x)
+    for i, val in enumerate(x):
+        if val > rmax:
+            rmax = val
+        y[i] = rmax
+    return y
 
 
-def _mortality_effect_model(ds: xr.Dataset) -> xr.Dataset:
-    # dot product of betas and t_bins
-    effect = (ds["histogram_tas"] * ds["beta"]).sum(dim="tas_bin")
-    return xr.Dataset({"effect": effect})
+@numba.guvectorize(["void(float64[:], int64, int64, float64[:])"], "(n),(),()->(n)")
+def _uclip_gufunc(x, min_idx_start, min_idx_stop, result):
+    # Find the local minimum within given idx range and center input.
+    idx_min = min_idx_start + np.argmin(x[min_idx_start:min_idx_stop])
+    x_centered = x - x[idx_min]
+
+    # Doing this if/else because can't return early in guvectorize funcs.
+    if len(x) < 3:
+        result[:] = x_centered
+    else:
+        n = len(x)
+        # WARNING: Throw error if min_idx_max is greater than n.
+        # WARNING: Throw error if min_idx_min is greater than min_idx_max.
+
+        # Right side. Ascending from minimum.
+        rs = x_centered[idx_min:n]
+        # Left size. Reversed to still ascend from minimum.
+        ls = x_centered[0 : idx_min + 1][::-1]
+        n_ls = len(ls)
+
+        # Take accumulative maximum for each side and stick it in outgoing array,
+        # with left hand side reversed back.
+        result[0:idx_min] = _maximum_accumulate(ls)[1:n_ls][::-1]
+        result[idx_min:n] = _maximum_accumulate(rs)
 
 
-# If you already have beta.
-mortality_effect_model = Projector(
-    preprocess=_no_processing,
-    project=_mortality_effect_model,
-    postprocess=_no_processing,
-)
-
-
-def uclip(da, dim, lmmt=10, ummt=30):
+def uclip(x, dim, lmmt=10, ummt=30):
     """Performs U Clipping of an unclipped response function for all regions
     simultaneously, centered around each region's Minimum Mortality Temperature (MMT).
 
@@ -49,31 +70,38 @@ def uclip(da, dim, lmmt=10, ummt=30):
     -------
     clipped : xarray DataArray of the regions response functioned centered on its mmt
     """
-    # identify mmt within defined range
-    range_msk = (da[dim] >= lmmt) & (da[dim] <= ummt)
-    min_idx = da.where(range_msk).idxmin(dim=dim)
-    min_val = da.where(range_msk).min(dim=dim)
+    # Get the min, max idx for values within lmmt and ummt.
+    mask_idx = np.where((x[dim] >= lmmt) & (x[dim] <= ummt))
+    idx_min = np.min(mask_idx)
+    idx_max = np.max(mask_idx)
 
-    # subtract mmt beta value
-    diffed = da - min_val
-
-    # mask data on each side of mmt and take cumulative max in each direction
-    rhs = (
-        diffed.where(diffed[dim] >= min_idx)
-        .rolling({dim: len(diffed[dim])}, min_periods=1)
-        .max()
-    )
-    lhs = (
-        diffed.where(diffed[dim] <= min_idx)
-        .sel({dim: slice(None, None, -1)})
-        .rolling({dim: len(diffed[dim])}, min_periods=1)
-        .max()
-        .sel({dim: slice(None, None, -1)})
+    return xr.apply_ufunc(
+        _uclip_gufunc,
+        x,
+        idx_min,
+        idx_max,
+        input_core_dims=[[dim], [], []],
+        output_core_dims=[[dim]],
+        dask="parallelized",
     )
 
-    # combine the arrays where they've been masked
-    clipped = rhs.fillna(lhs)
-    return clipped
+
+def _no_processing(ds: xr.Dataset) -> xr.Dataset:
+    return ds
+
+
+def _mortality_effect_model(ds: xr.Dataset) -> xr.Dataset:
+    # dot product of betas and t_bins
+    effect = (ds["histogram_tas"] * ds["beta"]).sum(dim="tas_bin")
+    return xr.Dataset({"effect": effect})
+
+
+# If you already have beta.
+mortality_effect_model = Projector(
+    preprocess=_no_processing,
+    project=_mortality_effect_model,
+    postprocess=_no_processing,
+)
 
 
 def _add_degree_coord(da: xr.DataArray, max_degrees: int | float) -> xr.DataArray:
