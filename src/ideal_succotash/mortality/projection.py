@@ -82,6 +82,7 @@ def uclip(x, dim, lmmt=10, ummt=30):
         idx_max,
         input_core_dims=[[dim], [], []],
         output_core_dims=[[dim]],
+        output_dtypes=["float64"],
         dask="parallelized",
     )
 
