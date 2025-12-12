@@ -156,7 +156,10 @@ def _beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
     beta = beta0 + beta1
 
     # Uclip beta across tas histogram's bin labels, so basically across range of daily temperature values.
-    beta = uclip(beta, dim="tas_bin")
+    beta = uclip(
+        beta.chunk({"tas_bin": -1}),  # Core dim must be in single chunk.
+        dim="tas_bin",
+    )
     # Returns new dataset with beta added as new variable. Not modifying
     # original ds. Also ensure original data is passed through to projection.
     return ds.assign({"beta": beta})
