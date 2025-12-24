@@ -54,3 +54,20 @@ make_tas_20yrmean_annual_histogram = TransformationStrategy(
         "float32"
     ),  # Save space. Don't need float64 precision.
 )
+
+
+def _make_tas_annual_histogram(ds: xr.Dataset) -> xr.Dataset:
+    bins = np.arange(230, 341)  # Range we get histogram count for. NOTE: in Kelvin!
+    tas_annual_histogram = (
+        ds["tas"].groupby("time.year").map(histogram, bins=[bins], dim=["time"])
+    )
+
+    return tas_annual_histogram.to_dataset().astype("float32")
+
+
+make_tas_annual_histogram = TransformationStrategy(
+    preprocess=_make_tas_annual_histogram,
+    postprocess=lambda ds: ds.astype(
+        "float32"
+    ),  # Save space. Don't need float64 precision.
+)
