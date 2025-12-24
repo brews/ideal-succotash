@@ -871,14 +871,14 @@ wheels = [
 
 [[package]]
 name = "muuttaa"
-version = "0.1.1"
+version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "xarray" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e8/9c/0c405b15e3200b4aef4f096e6bf1f5cd810f4097ecfc6187ac8c3de5e100/muuttaa-0.1.1.tar.gz", hash = "sha256:5e1c091320a6533b8cb01ca0efedcdd7af22be6038b81f8a7c1bc24449b1ce06", size = 10029, upload-time = "2025-04-11T15:45:07.745Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/78/5108af12e80015595d55f932776441f55b5dc4d5d6b165cbdc2d28e5d5e5/muuttaa-0.1.2.tar.gz", hash = "sha256:5d3f3d3b6681f1cdd49bacb46aed12836709a9299d38a540731b07681805bc93", size = 93247, upload-time = "2025-12-19T23:21:22.37Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/ec/279e0a90924599027b074356d598094d628d9532c7ca9ddc9cae67e22d38/muuttaa-0.1.1-py3-none-any.whl", hash = "sha256:4c8ce0a35395c5207c3465b02b3cc839548813a2c828111bf0e74a0327602109", size = 9026, upload-time = "2025-04-11T15:45:06.384Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/23/bb8f8308b76b7a4fcb9b94384772f6dd09adae7e9ee36a19184b27b88537/muuttaa-0.1.2-py3-none-any.whl", hash = "sha256:cf369395bda7b337b5f2831f5deeb67d2c9b322647d0ec95c307969be40ef780", size = 8824, upload-time = "2025-12-19T23:21:21.097Z" },
 ]
 
 [[package]]
