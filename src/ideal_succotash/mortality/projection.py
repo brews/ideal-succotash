@@ -20,24 +20,20 @@ def _maximum_accumulate(x):
     return y
 
 
-@numba.guvectorize(["void(float64[:], int64, int64, float64[:])"], "(n),(),()->(n)")
-def _uclip_gufunc(x, min_idx_start, min_idx_stop, result):
-    # Find the local minimum within given idx range and center input.
-    idx_min = min_idx_start + np.argmin(x[min_idx_start:min_idx_stop])
-    x_centered = x - x[idx_min]
-
+@numba.guvectorize(["void(float64[:], int64, float64[:])"], "(n),()->(n)")
+def _uclip_gufunc(x, idx_min, result):
     # Doing this if/else because can't return early in guvectorize funcs.
     if len(x) < 3:
-        result[:] = x_centered
+        result[:] = x
     else:
         n = len(x)
         # WARNING: Throw error if min_idx_max is greater than n.
         # WARNING: Throw error if min_idx_min is greater than min_idx_max.
 
-        # Right side. Ascending from minimum.
-        rs = x_centered[idx_min:n]
-        # Left size. Reversed to still ascend from minimum.
-        ls = x_centered[0 : idx_min + 1][::-1]
+        # Get right side of minimum idx, ascending from minimum.
+        rs = x[idx_min:n]
+        # Left size, but reversed to still ascend from minimum.
+        ls = x[0 : idx_min + 1][::-1]
         n_ls = len(ls)
 
         # Take accumulative maximum for each side and stick it in outgoing array,
@@ -46,7 +42,7 @@ def _uclip_gufunc(x, min_idx_start, min_idx_stop, result):
         result[idx_min:n] = _maximum_accumulate(rs)
 
 
-def uclip(x, dim, lmmt=10, ummt=30):
+def uclip(x, dim, idx_min):
     """Performs U Clipping of an unclipped response function for all regions
     simultaneously, centered around each region's Minimum Mortality Temperature (MMT).
 
@@ -59,28 +55,19 @@ def uclip(x, dim, lmmt=10, ummt=30):
         along dimensions `dim` for all other dimensions independently (e.g. a unique
         minimum point will be found for each combination of any other dimensions in the
         data).
-    lmmt : int
-        Lower bound of the temperature range in which a minimum mortality temperature
-        will be searched for. Default is 10.
-    ummt : int
-        Upper bound of the temperature range in which a minimum mortality temperature
-        will be searched for. Default is 30.
+    idx_min : int
+        Index of value to use as the middle "base" of the U. Usually the minimum mortality temperature.
 
     Returns
     -------
-    clipped : xarray DataArray of the regions response functioned centered on its mmt
+    clipped : xarray DataArray of the regions response functioned centered on idx_min.
     """
-    # Get the min, max idx for values within lmmt and ummt.
-    mask_idx = np.where((x[dim] >= lmmt) & (x[dim] <= ummt))
-    idx_min = np.min(mask_idx)
-    idx_max = np.max(mask_idx)
-
+    # TODO: Check that `idx_min` can be found along the `dim` of `x`.
     return xr.apply_ufunc(
         _uclip_gufunc,
         x,
         idx_min,
-        idx_max,
-        input_core_dims=[[dim], [], []],
+        input_core_dims=[[dim], []],
         output_core_dims=[[dim]],
         output_dtypes=["float64"],
         dask="parallelized",
@@ -103,6 +90,18 @@ mortality_effect_model = Projector(
     project=_mortality_effect_model,
     postprocess=_no_processing,
 )
+
+
+def minimum_arg(x: xr.DataArray, *, dim="tas_bin", lmmt=10.0, ummt=30.0):
+    """
+    Get minimum and its associated dim label within an inclusive range along dim
+    """
+    # Find minimum within inclusive range, get the dim label for the minimum's position.
+    # Need to .compute() mmt_argmin because can't yet do vectorized indexing with dask arrays. See https://github.com/dask/dask/issues/8958
+    min_arg = x.where((x[dim] >= lmmt) & (x[dim] <= ummt)).argmin(dim=dim).compute()
+    # Get the actual minima values.
+    min_value = x.isel({dim: min_arg})
+    return min_value, min_arg
 
 
 def _add_degree_coord(da: xr.DataArray, max_degrees: int | float) -> xr.DataArray:
@@ -156,10 +155,19 @@ def _beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
     beta1 = xr.dot(gamma_covar, covar, tas, dim=["covarname", "degree"], optimize=True)
     beta = beta0 + beta1
 
-    # Uclip beta across tas histogram's bin labels, so basically across range of daily temperature values.
-    beta = uclip(
-        beta.chunk({"tas_bin": -1}),  # Core dim must be in single chunk.
+    # Find beta at minimum mortality temperature.
+    mmt_beta, mmt = minimum_arg(
+        beta,
         dim="tas_bin",
+        lmmt=10.0,
+        ummt=30.0,
+    )
+    # Shift so mmt beta is zero & Uclip beta across tas histogram's bin
+    # labels, so basically across range of daily temperature values.
+    beta = uclip(
+        (beta - mmt_beta).chunk({"tas_bin": -1}),  # Core dim must be in single chunk.
+        dim="tas_bin",
+        idx_min=mmt,
     )
     # Returns new dataset with beta added as new variable. Not modifying
     # original ds. Also ensure original data is passed through to projection.
@@ -170,5 +178,254 @@ def _beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
 mortality_effect_model_gamma = Projector(
     preprocess=_beta_from_gamma,  # Not sure this should actually be a preprocess but I'm lazy.
     project=_mortality_effect_model,
+    postprocess=_no_processing,
+)
+
+
+def _incadapt_beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Calculates mortality impact polynomial model's beta coefficients from gamma coefficients for the income-adaptation scenario.
+
+    Returns a copy of `ds` with new "beta" variable.
+    """
+    # The ds["gamma"] has a "covarname" dimension with one element for each of the model's covariates.
+
+    # This unpacks "covarname" so each covariate gamma coefficient is its own variable.
+    # Doing this to try to make math easier to read.
+    gamma_1 = ds["gamma"].sel(
+        covarname="1",
+        drop=True,
+    )  # coefficient for predictor tas (tas histogram bin labels).
+    gamma_climtas = ds["gamma"].sel(
+        covarname="climtas",
+        drop=True,
+    )  # coefficient for climtas covariate.
+    gamma_loggdppc = ds["gamma"].sel(
+        covarname="loggdppc",
+        drop=True,
+    )  # coefficient log of GDP per capita covariate.
+
+    # Remember, annual histograms as input use histogram bin labels ("tas_bin") as "tas".
+    # Creates a "degree" coordinate and populates it with tas^1, tas^2, tas^3, etc. equal to degrees in polynomial.
+    tas = _add_degree_coord(ds["tas_bin"], max_degrees=gamma_1["degree"].size)
+    # Do it this way so we don't need to repeat the same math for each degree of the polynomial below.
+
+    baseline_year = 2015
+    climtas_baseline = ds["climtas"].sel(year=baseline_year, drop=True)
+    loggdppc_baseline = ds["loggdppc"].sel(year=baseline_year, drop=True)
+    #  γ_1 * tas + γ_climtas * climtas * tas + γ_loggdppc * loggdppc * tas
+    # term for each of the polynomial degrees (∵ "degree" is a coordinate for variables that vary by degree).
+    beta_1 = (gamma_1 * tas).sum("degree")
+    beta_loggdppc = (gamma_loggdppc * ds["loggdppc"] * tas).sum("degree")
+    beta_climtas_baseline = (gamma_climtas * climtas_baseline * tas).sum("degree")
+    beta_loggdppc_baseline = (gamma_loggdppc * loggdppc_baseline * tas).sum("degree")
+
+    beta_noadapt_unshifted = beta_1 + beta_climtas_baseline + beta_loggdppc_baseline
+    beta_incadapt_unshifted = beta_1 + beta_climtas_baseline + beta_loggdppc
+
+    # Find idx with lowest beta & minimum mortality temperature (mmt) within degC range in the baseline period.
+    mmt_beta, mmt_idx = minimum_arg(
+        beta_noadapt_unshifted,
+        dim="tas_bin",
+        lmmt=10.0,
+        ummt=30.0,
+    )
+    beta_noadapt = beta_noadapt_unshifted - mmt_beta
+    beta_incadapt = beta_incadapt_unshifted - beta_incadapt_unshifted.isel(
+        tas_bin=mmt_idx
+    )
+
+    beta_goodmoney = beta_incadapt.where(
+        beta_incadapt < beta_noadapt,
+        other=beta_noadapt,
+    )
+
+    # Negative values to zero. Sometimes called "level clipping".
+    beta_goodmoney = beta_goodmoney.clip(min=0)
+
+    # u-clip. Makes the response function shaped like a big U, centered on the mmt.
+    beta_uclip = uclip(
+        beta_goodmoney.chunk({"tas_bin": -1}),  # Core dim must be in single chunk.
+        dim="tas_bin",
+        idx_min=mmt_idx,
+    )
+
+    # Returns new dataset with beta added as new variable. Not modifying
+    # original ds. Also ensure original data is passed through to projection.
+    return ds.assign({"beta": beta_uclip})
+
+
+def _mortality_rebased_impact_model(ds: xr.Dataset) -> xr.Dataset:
+    # dot product of betas and t_bins for each adaptation, with each adapation along a new dim.
+    effect = (ds["histogram_tas"] * ds["beta"]).sum(dim="tas_bin")
+
+    # Subtract mean of baseline period so response effect becomes impact.
+    impact = effect - effect.sel(year=slice(2001, 2010)).mean(dim="year")
+    return xr.Dataset({"impact": impact})
+
+
+mortality_incadapt_impact_model = Projector(
+    preprocess=_incadapt_beta_from_gamma,
+    project=_mortality_rebased_impact_model,
+    postprocess=_no_processing,
+)
+
+
+def _fulladapt_beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Calculates mortality impact polynomial model's beta coefficients from gamma coefficients for the full-adaptation scenario.
+
+    Returns a copy of `ds` with new "beta" variable.
+    """
+    # The ds["gamma"] has a "covarname" dimension with one element for each of the model's covariates.
+
+    # This unpacks "covarname" so each covariate gamma coefficient is its own variable.
+    # Doing this to try to make math easier to read.
+    gamma_1 = ds["gamma"].sel(
+        covarname="1",
+        drop=True,
+    )  # coefficient for predictor tas (tas histogram bin labels).
+    gamma_climtas = ds["gamma"].sel(
+        covarname="climtas",
+        drop=True,
+    )  # coefficient for climtas covariate.
+    gamma_loggdppc = ds["gamma"].sel(
+        covarname="loggdppc",
+        drop=True,
+    )  # coefficient log of GDP per capita covariate.
+
+    # Remember, annual histograms as input use histogram bin labels ("tas_bin") as "tas".
+    # Creates a "degree" coordinate and populates it with tas^1, tas^2, tas^3, etc. equal to degrees in polynomial.
+    tas = _add_degree_coord(ds["tas_bin"], max_degrees=gamma_1["degree"].size)
+    # Do it this way so we don't need to repeat the same math for each degree of the polynomial below.
+
+    baseline_year = 2015
+    climtas_baseline = ds["climtas"].sel(year=baseline_year, drop=True)
+    loggdppc_baseline = ds["loggdppc"].sel(year=baseline_year, drop=True)
+    #  γ_1 * tas + γ_climtas * climtas * tas + γ_loggdppc * loggdppc * tas
+    # term for each of the polynomial degrees (∵ "degree" is a coordinate for variables that vary by degree).
+    beta_1 = (gamma_1 * tas).sum("degree")
+    beta_climtas = (gamma_climtas * ds["climtas"] * tas).sum("degree")
+    beta_loggdppc = (gamma_loggdppc * ds["loggdppc"] * tas).sum("degree")
+
+    beta_climtas_baseline = (gamma_climtas * climtas_baseline * tas).sum("degree")
+    beta_loggdppc_baseline = (gamma_loggdppc * loggdppc_baseline * tas).sum("degree")
+
+    beta_noadapt_unshifted = beta_1 + beta_climtas_baseline + beta_loggdppc_baseline
+
+    # Find idx with lowest beta & minimum mortality temperature (mmt) within degC range in the baseline period.
+    mmt_beta, mmt_idx = minimum_arg(
+        beta_noadapt_unshifted,
+        dim="tas_bin",
+        lmmt=10.0,
+        ummt=30.0,
+    )
+
+    beta_noinc_unshifted = beta_1 + beta_loggdppc_baseline + beta_climtas
+    # Level the beta to the beta value at the baseline period MMT.
+    beta_noinc = beta_noinc_unshifted - beta_noinc_unshifted.isel(tas_bin=mmt_idx)
+
+    beta_fulladapt = beta_1 + beta_loggdppc + beta_climtas
+    # Level the beta to the beta value at the baseline period MMT.
+    beta_fulladapt = beta_fulladapt - beta_fulladapt.isel(tas_bin=mmt_idx)
+
+    # "Good money" clipping.
+    # Money cannot cause maladaptation so use a no-income rate when it's better(lower) than a income-adaptation rate.
+    beta_fulladapt_goodmoney = beta_fulladapt.where(
+        beta_fulladapt < beta_noinc,
+        other=beta_noinc,
+    )
+
+    # Negative values to zero. Sometimes called "level clipping".
+    beta_fulladapt_goodmoney = beta_fulladapt_goodmoney.clip(min=0)
+
+    # u-clip. Makes the response function shaped like a big U, centered on the mmt.
+    beta_uclip = uclip(
+        beta_fulladapt_goodmoney.chunk(
+            {"tas_bin": -1}
+        ),  # Core dim must be in single chunk.
+        dim="tas_bin",
+        idx_min=mmt_idx,
+    )
+    # Returns new dataset with beta added as new variable. Not modifying
+    # original ds. Also ensure original data is passed through to projection.
+    return ds.assign({"beta": beta_uclip})
+
+
+mortality_fulladapt_impact_model = Projector(
+    preprocess=_fulladapt_beta_from_gamma,
+    project=_mortality_rebased_impact_model,
+    postprocess=_no_processing,
+)
+
+
+def _noadapt_beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Calculates mortality impact polynomial model's beta coefficients from gamma coefficients for the no-adaptation scenario.
+
+    Returns a copy of `ds` with new "beta" variable.
+    """
+    # The ds["gamma"] has a "covarname" dimension with one element for each of the model's covariates.
+
+    # This unpacks "covarname" so each covariate gamma coefficient is its own variable.
+    # Doing this to try to make math easier to read.
+    gamma_1 = ds["gamma"].sel(
+        covarname="1",
+        drop=True,
+    )  # coefficient for predictor tas (tas histogram bin labels).
+    gamma_climtas = ds["gamma"].sel(
+        covarname="climtas",
+        drop=True,
+    )  # coefficient for climtas covariate.
+    gamma_loggdppc = ds["gamma"].sel(
+        covarname="loggdppc",
+        drop=True,
+    )  # coefficient log of GDP per capita covariate.
+
+    # Remember, annual histograms as input use histogram bin labels ("tas_bin") as "tas".
+    # Creates a "degree" coordinate and populates it with tas^1, tas^2, tas^3, etc. equal to degrees in polynomial.
+    tas = _add_degree_coord(ds["tas_bin"], max_degrees=gamma_1["degree"].size)
+    # Do it this way so we don't need to repeat the same math for each degree of the polynomial below.
+
+    baseline_year = 2015
+    climtas_baseline = ds["climtas"].sel(year=baseline_year)
+    loggdppc_baseline = ds["loggdppc"].sel(year=baseline_year)
+    #  γ_1 * tas + γ_climtas * climtas * tas + γ_loggdppc * loggdppc * tas
+    # term for each of the polynomial degrees (∵ "degree" is a coordinate for variables that vary by degree).
+    beta_1 = (gamma_1 * tas).sum("degree")
+
+    beta_climtas_baseline = (gamma_climtas * climtas_baseline * tas).sum("degree")
+    beta_loggdppc_baseline = (gamma_loggdppc * loggdppc_baseline * tas).sum("degree")
+
+    beta_noadapt_unshifted = beta_1 + beta_climtas_baseline + beta_loggdppc_baseline
+
+    # Find idx with lowest beta & minimum mortality temperature (mmt) within degC range in the baseline period.
+    mmt_beta, mmt = minimum_arg(
+        beta_noadapt_unshifted,
+        dim="tas_bin",
+        lmmt=10.0,
+        ummt=30.0,
+    )
+
+    beta_noadapt = beta_noadapt_unshifted - mmt_beta
+
+    # Negative values to zero. Sometimes called "level clipping".
+    beta_noadapt = beta_noadapt.clip(min=0)
+
+    # u-clip. Makes the response function shaped like a big U, centered on the mmt.
+    beta_noadapt_uclip = uclip(
+        beta_noadapt.chunk({"tas_bin": -1}),  # Core dim must be in single chunk.
+        dim="tas_bin",
+        idx_min=mmt,
+    )
+
+    # Returns new dataset with beta added as new variable. Not modifying
+    # original ds. Also ensure original data is passed through to projection.
+    return ds.assign({"beta": beta_noadapt_uclip})
+
+
+mortality_noadapt_impact_model = Projector(
+    preprocess=_noadapt_beta_from_gamma,
+    project=_mortality_rebased_impact_model,
     postprocess=_no_processing,
 )

@@ -215,11 +215,11 @@ def test_uclip_gufunc():
     Test the uclip_gufunc passes a simple uclip array
     """
     x = np.array([5, 4, 4.5, 3.9, 2, 3, 1, 2.5, 2, 6])
-    expected = np.array([5, 4.5, 4.5, 3.9, 3, 3, 1, 2.5, 2.5, 6]) - 1
+    expected = np.array([5, 4.5, 4.5, 3.9, 3, 3, 1, 2.5, 2.5, 6])
     assert x.shape == expected.shape
 
-    actual = _uclip_gufunc(x, 0, len(x))
-    np.testing.assert_allclose(expected, actual)
+    actual = _uclip_gufunc(x, 6)
+    np.testing.assert_allclose(actual, expected)
 
 
 def test_uclip():
@@ -232,22 +232,32 @@ def test_uclip():
     region_coord = ["u", "rising", "falling"]
     dim0_coord = [5, 10, 20, 30, 40]
     da_in = xr.DataArray(
-        [[3, 1, 3, 2, 5], [0, 2, 2, 5, 5], [5, 5, 2, 2, 0]],
+        [
+            [3, 1, 3, 2, 5],
+            [0, 2, 2, 5, 5],
+            [5, 5, 2, 2, 0],
+        ],
         coords=[region_coord, dim0_coord],
         dims=["region", dim0_name],
         name="foobar",
     ).astype("float64")
     expected = xr.DataArray(
         [
-            [2.0, 0.0, 2.0, 2.0, 4.0],
-            [0.0, 0.0, 0.0, 3.0, 3.0],
-            [3.0, 3.0, 0.0, 0.0, 0.0],
+            [3.0, 1.0, 3.0, 3.0, 5.0],
+            [0.0, 2.0, 2.0, 5.0, 5.0],
+            [5.0, 5.0, 2.0, 2.0, 0.0],
         ],
         coords=[region_coord, dim0_coord],
         dims=["region", dim0_name],
         name="foobar",
     )
 
-    actual = uclip(da_in, dim=dim0_name)
+    actual = uclip(
+        da_in,
+        dim=dim0_name,
+        idx_min=xr.DataArray(
+            np.array([1, 0, 4]), coords=[region_coord], dims=["region"]
+        ),
+    )
 
     xr.testing.assert_equal(actual, expected)
