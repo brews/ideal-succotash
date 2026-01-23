@@ -299,49 +299,6 @@ def _fulladapt_beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
     tas = _add_degree_coord(ds["tas_bin"], max_degrees=gamma_1["degree"].size)
     # Do it this way so we don't need to repeat the same math for each degree of the polynomial below.
 
-    # baseline_year = 2015
-    # climtas_baseline = ds["climtas"].sel(year=baseline_year, drop=True)
-    # loggdppc_baseline = ds["loggdppc"].sel(year=baseline_year, drop=True)
-    # #  γ_1 * tas + γ_climtas * climtas * tas + γ_loggdppc * loggdppc * tas
-    # # term for each of the polynomial degrees (∵ "degree" is a coordinate for variables that vary by degree).
-    # beta_1 = (gamma_1 * tas).sum("degree")
-    # beta_climtas = (gamma_climtas * ds["climtas"] * tas).sum("degree")
-    # beta_loggdppc = (gamma_loggdppc * ds["loggdppc"] * tas).sum("degree")
-
-    # beta_climtas_baseline = (gamma_climtas * climtas_baseline * tas).sum("degree")
-    # beta_loggdppc_baseline = (gamma_loggdppc * loggdppc_baseline * tas).sum("degree")
-
-    # # Increased money for adaptation can't cause maladaptation so use baseline
-    # # logGDPpc sensitivity when it reduces projected mortality rate.
-    # beta_loggdppc_goodmoney = beta_loggdppc.where(
-    #     beta_loggdppc < beta_loggdppc_baseline,
-    #     other=beta_loggdppc_baseline,
-    # )
-
-    # beta_noadapt_unshifted = beta_1 + beta_climtas_baseline + beta_loggdppc_baseline
-
-    # # Find idx with lowest beta & minimum mortality temperature (mmt) within degC range in the baseline period.
-    # _, mmt_idx = minimum_arg(
-    #     beta_noadapt_unshifted,
-    #     dim="tas_bin",
-    #     lmmt=10.0,
-    #     ummt=30.0,
-    # )
-
-    # beta_fulladapt = beta_1 + beta_loggdppc_goodmoney + beta_climtas
-    # # Level the beta to the beta value at the baseline period MMT.
-    # beta_fulladapt = beta_fulladapt - beta_fulladapt.isel(tas_bin=mmt_idx)
-
-    # # Negative values to zero. Sometimes called "level clipping".
-    # beta_fulladapt = beta_fulladapt.clip(min=0)
-
-    # # u-clip. Makes the response function shaped like a big U, centered on the mmt.
-    # beta_uclip = uclip(
-    #     beta_fulladapt.chunk({"tas_bin": -1}),  # Core dim must be in single chunk.
-    #     dim="tas_bin",
-    #     idx_min=mmt_idx,
-    # )
-
     baseline_year = 2015
     climtas_baseline = ds["climtas"].sel(year=baseline_year, drop=True)
     loggdppc_baseline = ds["loggdppc"].sel(year=baseline_year, drop=True)
