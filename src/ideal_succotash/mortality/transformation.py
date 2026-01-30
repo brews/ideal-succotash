@@ -5,6 +5,7 @@ Logic for mortality transformation and regionalization.
 from muuttaa import TransformationStrategy
 import numpy as np
 import xarray as xr
+from xclim.core import units
 from xhistogram.xarray import histogram
 
 
@@ -12,7 +13,8 @@ def _make_annual_tas(ds: xr.Dataset) -> xr.Dataset:
     """
     Compute annual average for 'tas'.
     """
-    return ds[["tas"]].groupby("time.year").mean("time")
+    tas = units.convert_units_to(ds["tas"], "degC")
+    return tas.groupby("time.year").mean("time").to_dataset()
 
 
 def _make_30hbartlett_climtas(ds: xr.Dataset) -> xr.Dataset:
@@ -37,9 +39,10 @@ make_climtas = TransformationStrategy(
 
 
 def _make_tas_20yrmean_annual_histogram(ds: xr.Dataset) -> xr.Dataset:
-    bins = np.arange(168, 340)  # Range we get histogram count for. NOTE: in Kelvin!
-    tas_annual_histogram = (
-        ds["tas"].groupby("time.year").map(histogram, bins=[bins], dim=["time"])
+    tas = units.convert_units_to(ds["tas"], "degC")
+    bins = np.arange(-105, 66)  # Range we get histogram count for. NOTE: in degC!
+    tas_annual_histogram = tas.groupby("time.year").map(
+        histogram, bins=[bins], dim=["time"]
     )
 
     tas_histogram_20yr = (
@@ -57,9 +60,10 @@ make_tas_20yrmean_annual_histogram = TransformationStrategy(
 
 
 def _make_tas_annual_histogram(ds: xr.Dataset) -> xr.Dataset:
-    bins = np.arange(168, 340)  # Range we get histogram count for. NOTE: in Kelvin!
-    tas_annual_histogram = (
-        ds["tas"].groupby("time.year").map(histogram, bins=[bins], dim=["time"])
+    tas = units.convert_units_to(ds["tas"], "degC")
+    bins = np.arange(-105, 66)  # Range we get histogram count for. NOTE: in degC!
+    tas_annual_histogram = tas.groupby("time.year").map(
+        histogram, bins=[bins], dim=["time"]
     )
 
     return tas_annual_histogram.to_dataset().astype("float32")
