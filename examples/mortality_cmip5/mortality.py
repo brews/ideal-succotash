@@ -26,7 +26,7 @@ print(
     """
 )
 
-CMIP_URI = "gs://impactlab-data-scratch/brews/3e2f02fa-f607-4d14-ae53-12be6b3f1e10/clean_cmip5.zarr"
+CMIP_URI = "gs://impactlab-data-scratch/brews/3be078f8-48a7-4daa-96df-7c8cd98c29f5/clean_cmip5.zarr"
 SOCIOECONOMICS_URI = "gs://impactlab-data/gcp/integration_replication_sync/inputs/econ/raw/integration-econ-bc39.zarr"
 SEGMENT_WEIGHTS_URI = "gs://impactlab-data-scratch/brews/clean_segment_weights.zarr"
 GAMMA_URI = "gs://impactlab-data-scratch/brews/clean_gamma.zarr"
@@ -74,11 +74,8 @@ transformed = muuttaa.apply_transformations(
 )
 
 # Some extra post-processing that was part of the carb projection.
-# TODO: Unit conversion should happen in transformation.
 transformed = (
     transformed
-    .assign_coords(tas_bin=(transformed["tas_bin"] - 273.15))
-    .assign(climtas=(transformed["climtas"] - 273.15))
     .sel(year=slice(2010, 2099)) # Match socioecon data range.
 )
 transformed = transformed.compute()
