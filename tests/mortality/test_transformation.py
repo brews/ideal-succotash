@@ -133,11 +133,11 @@ def test_make_tas_20yrmean_annual_histogram(basic_segment_weights):
     Does basic checks on output "histogram_tas" and "tas_bin" which are created from input daily "tas".
     """
     expected = xr.Dataset(
-        {"histogram_tas": (["region", "year", "tas_bin"], np.zeros((1, 22, 110)))},
+        {"histogram_tas": (["region", "year", "tas_bin"], np.zeros((1, 22, 171)))},
         coords={
             "region": np.array(["foobar"]),
             "year": np.arange(2000, 2022),
-            "tas_bin": np.arange(230.5, 340.5),
+            "tas_bin": np.arange(168.5, 339.5),
         },
     )
     expected["histogram_tas"].loc[

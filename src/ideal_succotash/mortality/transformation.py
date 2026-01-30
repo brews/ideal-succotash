@@ -37,7 +37,7 @@ make_climtas = TransformationStrategy(
 
 
 def _make_tas_20yrmean_annual_histogram(ds: xr.Dataset) -> xr.Dataset:
-    bins = np.arange(230, 341)  # Range we get histogram count for. NOTE: in Kelvin!
+    bins = np.arange(168, 340)  # Range we get histogram count for. NOTE: in Kelvin!
     tas_annual_histogram = (
         ds["tas"].groupby("time.year").map(histogram, bins=[bins], dim=["time"])
     )
@@ -57,7 +57,7 @@ make_tas_20yrmean_annual_histogram = TransformationStrategy(
 
 
 def _make_tas_annual_histogram(ds: xr.Dataset) -> xr.Dataset:
-    bins = np.arange(230, 341)  # Range we get histogram count for. NOTE: in Kelvin!
+    bins = np.arange(168, 340)  # Range we get histogram count for. NOTE: in Kelvin!
     tas_annual_histogram = (
         ds["tas"].groupby("time.year").map(histogram, bins=[bins], dim=["time"])
     )
