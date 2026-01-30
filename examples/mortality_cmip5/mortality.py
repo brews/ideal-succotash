@@ -1,5 +1,5 @@
 %pip install muuttaa==0.1.1
-%pip install git+https://github.com/brews/ideal-succotash@b080eb37e184f1e3ef8883ccbe24691ae015aee1 --no-deps
+%pip install git+https://github.com/brews/ideal-succotash@352c8b616b6dce9efd7bde70b4cda07a1c53b9f1 --no-deps
 
 import datetime
 import os
@@ -55,6 +55,8 @@ cmip = xr.open_datatree(CMIP_URI, engine="zarr", chunks={}).chunk(
     {"time": 365 * 50, "lat": 90, "lon": 90}
 )
 test_ds = cmip["rcp45/ACCESS1-0"].ds
+# TODO: fix this unit metadata in cleaning.
+test_ds["tas"].attrs["units"] = "K"  # CMIP5 doesn't include units in metadata.
 
 
 # Need dask cluster for these climate transformations and projection.
@@ -69,7 +71,7 @@ transformed = muuttaa.apply_transformations(
     regionalize=segment_weights,
     strategies=[
         transformation.make_climtas,
-        transformation.make_tas_20yrmean_annual_histogram,
+        transformation.make_tas_annual_histogram,
     ],
 )
 
