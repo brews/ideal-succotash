@@ -5,7 +5,6 @@ Logic for mortality impact and damage projection.
 from muuttaa import Projector
 import numba
 import numpy as np
-import pandas as pd
 import xarray as xr
 
 
@@ -121,7 +120,7 @@ def _add_degree_coord(da: xr.DataArray, max_degrees: int | float) -> xr.DataArra
         + [
             da**i for i in degree_idx[1:]
         ],  # Avoids computing ds^1 to not add tasks to dask graph when dask-backed data.
-        pd.Index(degree_idx, name="degree"),
+        dim=xr.DataArray(degree_idx, dims="degree", name="degree"),
     )
     return out
 
