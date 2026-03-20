@@ -53,12 +53,12 @@ def uclip(x, dim, idx_min):
         xarray.DataArray of unclipped response functions
     dim : str
         Dimension name along which clipping will be applied. Clipping will be applied
-        along dimensions `dim` for all other dimensions independently. This is usually
-        the "dose" climate or weather variable, e.g., daily-average air 
+        along dimensions 'dim' for all other dimensions independently. This is usually
+        the "dose" climate or weather variable, e.g., daily-average air
         temperature ('tas' or 'tas_bin').
     idx_min : int
-        Index of value to use as the middle "base" of the "U". Found along the 
-        dimension 'dim' of `da`. In these mortality projections, this is often the 
+        Index of value to use as the middle base of the "U". Found along the
+        dimension 'dim' of 'da'. In these mortality projections, this is often the
         index of the Minimum Mortality Temperature (MMT).
 
     Returns
