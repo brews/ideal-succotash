@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "muuttaa>=0.1.1",
-    "numba>=0.62.1",
+    "numba>=0.65.0",
     "numpy>=2.3.5",
     "xarray[accel,io,parallel]>=2025.11.0",
     "xclim>=0.60.0",
