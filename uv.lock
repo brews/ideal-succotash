@@ -636,7 +636,7 @@ dev = [
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "ruff", specifier = ">=0.15.11" },
-    { name = "xarray", extras = ["types"], specifier = ">=2025.11.0" },
+    { name = "xarray", extras = ["types"], specifier = ">=2026.4.0" },
 ]
 
 [[package]]
