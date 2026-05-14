@@ -2,7 +2,7 @@
 Logic for mortality transformation and regionalization.
 """
 
-from muuttaa import TransformationStrategy
+import isku
 import numpy as np
 import xarray as xr
 from xclim.core import units
@@ -32,9 +32,9 @@ def _make_30hbartlett_climtas(ds: xr.Dataset) -> xr.Dataset:
     return da.to_dataset(name="climtas").astype("float32")
 
 
-make_climtas = TransformationStrategy(
-    preprocess=_make_annual_tas,
-    postprocess=_make_30hbartlett_climtas,
+make_climtas = isku.build_extraction_template(
+    pre=_make_annual_tas,
+    post=_make_30hbartlett_climtas,
 )
 
 
@@ -51,11 +51,9 @@ def _make_tas_20yrmean_annual_histogram(ds: xr.Dataset) -> xr.Dataset:
     return tas_histogram_20yr.astype("float32")
 
 
-make_tas_20yrmean_annual_histogram = TransformationStrategy(
-    preprocess=_make_tas_20yrmean_annual_histogram,
-    postprocess=lambda ds: ds.astype(
-        "float32"
-    ),  # Save space. Don't need float64 precision.
+make_tas_20yrmean_annual_histogram = isku.build_extraction_template(
+    pre=_make_tas_20yrmean_annual_histogram,
+    post=lambda ds: ds.astype("float32"),  # Save space. Don't need float64 precision.
 )
 
 
@@ -69,9 +67,7 @@ def _make_tas_annual_histogram(ds: xr.Dataset) -> xr.Dataset:
     return tas_annual_histogram.to_dataset().astype("float32")
 
 
-make_tas_annual_histogram = TransformationStrategy(
-    preprocess=_make_tas_annual_histogram,
-    postprocess=lambda ds: ds.astype(
-        "float32"
-    ),  # Save space. Don't need float64 precision.
+make_tas_annual_histogram = isku.build_extraction_template(
+    pre=_make_tas_annual_histogram,
+    post=lambda ds: ds.astype("float32"),  # Save space. Don't need float64 precision.
 )
