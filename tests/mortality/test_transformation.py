@@ -1,4 +1,4 @@
-from muuttaa import apply_transformations, SegmentWeights
+import isku
 import numpy as np
 import pytest
 import xarray as xr
@@ -13,7 +13,7 @@ from ideal_succotash.mortality.transformation import (
 
 @pytest.fixture
 def basic_segment_weights():
-    sw = SegmentWeights(
+    sw = isku.GridWeightingRegions(
         weights=xr.Dataset(
             {
                 "region": (["idx"], ["foobar"]),
@@ -121,10 +121,10 @@ def test_make_climtas(basic_segment_weights):
     )
     ds_in["tas"].attrs["units"] = "degC"
 
-    actual = apply_transformations(
+    actual = isku.extract_regions(
         ds_in,
-        strategies=[make_climtas],
-        regionalize=basic_segment_weights,
+        template=make_climtas,
+        regions=basic_segment_weights,
     )
     xr.testing.assert_allclose(actual, expected)
 
@@ -169,10 +169,10 @@ def test_make_tas_20yrmean_annual_histogram(basic_segment_weights):
     )
     ds_in["tas"].attrs["units"] = "degC"
 
-    actual = apply_transformations(
+    actual = isku.extract_regions(
         ds_in,
-        strategies=[make_tas_20yrmean_annual_histogram],
-        regionalize=basic_segment_weights,
+        template=make_tas_20yrmean_annual_histogram,
+        regions=basic_segment_weights,
     )
     xr.testing.assert_allclose(actual, expected)
 
@@ -199,10 +199,12 @@ def test_transforms_run_together(basic_segment_weights):
 
     ds_in["tas"].attrs["units"] = "degC"
 
-    transformed = apply_transformations(
-        ds_in,
-        strategies=[make_climtas, make_tas_20yrmean_annual_histogram],
-        regionalize=basic_segment_weights,
+    templates = [make_climtas, make_tas_20yrmean_annual_histogram]
+    transformed = xr.merge(
+        [
+            isku.extract_regions(ds_in, template=t, regions=basic_segment_weights)
+            for t in templates
+        ]
     )
 
     assert "histogram_tas" in transformed

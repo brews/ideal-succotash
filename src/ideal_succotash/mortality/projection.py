@@ -4,7 +4,7 @@ Logic for mortality impact and damage projection.
 
 from typing import Any, Sequence
 
-from muuttaa import Projector
+import isku
 import numba
 import numpy as np
 import xarray as xr
@@ -88,10 +88,10 @@ def _mortality_effect_model(ds: xr.Dataset) -> xr.Dataset:
 
 
 # If you already have beta.
-mortality_effect_model = Projector(
-    preprocess=_no_processing,
+mortality_effect_model = isku.build_projection_template(
+    pre=_no_processing,
     project=_mortality_effect_model,
-    postprocess=_no_processing,
+    post=_no_processing,
 )
 
 
@@ -178,10 +178,10 @@ def _beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
 
 
 # If you have gamma and need to compute beta.
-mortality_effect_model_gamma = Projector(
-    preprocess=_beta_from_gamma,  # Not sure this should actually be a preprocess but I'm lazy.
+mortality_effect_model_gamma = isku.build_projection_template(
+    pre=_beta_from_gamma,  # Not sure this should actually be a preprocess but I'm lazy.
     project=_mortality_effect_model,
-    postprocess=_no_processing,
+    post=_no_processing,
 )
 
 
@@ -299,10 +299,10 @@ def _mortality_rebased_impact_model(ds: xr.Dataset) -> xr.Dataset:
     return xr.Dataset({"impact": impact})
 
 
-mortality_incadapt_impact_model = Projector(
-    preprocess=_incadapt_beta_from_gamma,
+mortality_incadapt_impact_model = isku.build_projection_template(
+    pre=_incadapt_beta_from_gamma,
     project=_mortality_rebased_impact_model,
-    postprocess=_no_processing,
+    post=_no_processing,
 )
 
 
@@ -347,10 +347,10 @@ def _fulladapt_beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
     return ds.assign(beta=beta_fulladapt)
 
 
-mortality_fulladapt_impact_model = Projector(
-    preprocess=_fulladapt_beta_from_gamma,
+mortality_fulladapt_impact_model = isku.build_projection_template(
+    pre=_fulladapt_beta_from_gamma,
     project=_mortality_rebased_impact_model,
-    postprocess=_no_processing,
+    post=_no_processing,
 )
 
 
@@ -378,8 +378,8 @@ def _noadapt_beta_from_gamma(ds: xr.Dataset) -> xr.Dataset:
     return ds.assign(beta=beta)
 
 
-mortality_noadapt_impact_model = Projector(
-    preprocess=_noadapt_beta_from_gamma,
+mortality_noadapt_impact_model = isku.build_projection_template(
+    pre=_noadapt_beta_from_gamma,
     project=_mortality_rebased_impact_model,
-    postprocess=_no_processing,
+    post=_no_processing,
 )

@@ -79,7 +79,7 @@ def test_fulladapt_beta(input_dataset):
     """
     Check that we can replicate 'yellow-purple' beta creation for a 'full adaptation' mortality projection.
     """
-    actual = mortality_fulladapt_impact_model.preprocess(input_dataset)["beta"]
+    actual = mortality_fulladapt_impact_model.pre_project(input_dataset)["beta"]
 
     expected = xr.DataArray(
         np.array(
@@ -120,7 +120,7 @@ def test_incadapt_beta(input_dataset):
     """
     Check that we can replicate 'yellow-purple' beta creation for an 'income-only adaptation' mortality projection.
     """
-    actual = mortality_incadapt_impact_model.preprocess(input_dataset)["beta"]
+    actual = mortality_incadapt_impact_model.pre_project(input_dataset)["beta"]
 
     expected = xr.DataArray(
         np.array(
@@ -161,7 +161,7 @@ def test_noadapt_beta(input_dataset):
     """
     Check that we can replicate 'yellow-purple' beta creation for an 'no adaptation' mortality projection.
     """
-    actual = mortality_noadapt_impact_model.preprocess(input_dataset)["beta"]
+    actual = mortality_noadapt_impact_model.pre_project(input_dataset)["beta"]
 
     expected = xr.DataArray(
         np.array(

@@ -1,4 +1,4 @@
-from muuttaa import project
+import isku
 import numpy as np
 import pytest
 import xarray as xr
@@ -107,7 +107,7 @@ def climtas():
 
 def test_mortality_effect_model(beta, histogram_tas):
     """
-    Test that mortality_effect_model runs through muuttaa.project with generally correct output.
+    Test that mortality_effect_model runs through isku.project with generally correct output.
     """
     expected = xr.Dataset(
         {
@@ -123,10 +123,9 @@ def test_mortality_effect_model(beta, histogram_tas):
         },
     )
 
-    actual = project(
-        histogram_tas,  # Transformed input climate data.
+    actual = isku.project(
+        xr.merge([histogram_tas, beta]),  # Transformed input climate data.
         model=mortality_effect_model,
-        parameters=beta,
     )
 
     xr.testing.assert_allclose(actual, expected)
@@ -134,7 +133,7 @@ def test_mortality_effect_model(beta, histogram_tas):
 
 def test_mortality_effect_model_gamma_mean(gamma, loggdppc, histogram_tas, climtas):
     """
-    Test that mortality_effect_model_gamma runs through muuttaa.project.
+    Test that mortality_effect_model_gamma runs through isku.project.
      Checks for generally correct output using mean gamma as input.
     """
     # Build up what we expect output to be.
@@ -160,8 +159,9 @@ def test_mortality_effect_model_gamma_mean(gamma, loggdppc, histogram_tas, climt
         ],
     )
 
-    actual = project(
-        transformed_input, model=mortality_effect_model_gamma, parameters=params
+    actual = isku.project(
+        xr.merge([transformed_input, params]),
+        model=mortality_effect_model_gamma,
     )
 
     xr.testing.assert_allclose(actual, expected)
@@ -169,7 +169,7 @@ def test_mortality_effect_model_gamma_mean(gamma, loggdppc, histogram_tas, climt
 
 def test_mortality_effect_model_gamma_sampled(gamma, loggdppc, histogram_tas, climtas):
     """
-    Test that mortality_effect_model_gamma runs through muuttaa.project.
+    Test that mortality_effect_model_gamma runs through isku.project.
     Checks for generally correct output using sampled gamma as input.
     """
     # Build up what we expect output to be.
@@ -203,8 +203,9 @@ def test_mortality_effect_model_gamma_sampled(gamma, loggdppc, histogram_tas, cl
         ],
     )
 
-    actual = project(
-        transformed_input, model=mortality_effect_model_gamma, parameters=params
+    actual = isku.project(
+        xr.merge([transformed_input, params]),
+        model=mortality_effect_model_gamma,
     )
 
     xr.testing.assert_allclose(actual, expected)
