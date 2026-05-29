@@ -634,7 +634,7 @@ requires-dist = [
     { name = "numba", specifier = ">=0.65.1" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "xarray", extras = ["accel", "io", "parallel"], specifier = ">=2026.4.0" },
-    { name = "xclim", specifier = ">=0.61.0" },
+    { name = "xclim", specifier = ">=0.61.1" },
     { name = "xhistogram", specifier = ">=0.3.2" },
 ]
 
@@ -2074,7 +2074,7 @@ types = [
 
 [[package]]
 name = "xclim"
-version = "0.61.0"
+version = "0.61.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boltons" },
@@ -2096,9 +2096,9 @@ dependencies = [
     { name = "xarray" },
     { name = "yamale" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/d2/da8b3406ec2559e891894ddf9f63f3b66bdba7d356c01c2fabbcc5377fb2/xclim-0.61.0.tar.gz", hash = "sha256:4a811b2faff8d33d3b35a9a25b6815b1d623cd32c2bd45bebc1a2a1acd748cfc", size = 905844, upload-time = "2026-05-07T20:37:04.973Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7c/31/8e7b119b9df1eacd6db37f36b2a8cdc760c58962150e3b250b3f76118734/xclim-0.61.1.tar.gz", hash = "sha256:8a093a7c8a0841fa5bf040ed358288e6b8c4dad782af07abc2f8cb6dc7d5f567", size = 906174, upload-time = "2026-05-25T16:10:28.604Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/ef/3e1b88bff7e753f6c17092b61e7815cd8150eca72f56358d718fa2919cb6/xclim-0.61.0-py3-none-any.whl", hash = "sha256:f0053ec07fec0f470cb1d8a12596ed37dc509f55adf5ee456bdf020cb6fa6920", size = 384707, upload-time = "2026-05-07T20:37:02.512Z" },
+    { url = "https://files.pythonhosted.org/packages/33/f8/e35cdc16e01f773a74ad4fd971198b77243baa8423245eb0193c1aa5327d/xclim-0.61.1-py3-none-any.whl", hash = "sha256:cc70ebd77115597422228d7fce99c3a7d3c7f7e0f76bbbc3b99ba9edd9defab0", size = 384714, upload-time = "2026-05-25T16:10:26.504Z" },
 ]
 
 [[package]]
