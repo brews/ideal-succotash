@@ -23,7 +23,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.1.0",
+    "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.15.18",
     "xarray[types]>=2026.4.0",
