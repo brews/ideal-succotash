@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "h5netcdf>=1.7.3",
     "isku>=0.3.0",
-    "numba>=0.65.1",
+    "numba>=0.66.0",
     "numpy>=2.4.6",
     "xarray[accel,io,parallel]>=2026.4.0",
     "xclim>=0.61.1",
