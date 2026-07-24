@@ -19,3 +19,7 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 3
+    groups:
+      xarray-extras:
+        patterns:
+          - "xarray[*]"
