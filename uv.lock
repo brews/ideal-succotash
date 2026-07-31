@@ -630,7 +630,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "h5netcdf", specifier = ">=1.7.3" },
-    { name = "isku", specifier = ">=0.3.0" },
+    { name = "isku", specifier = ">=0.4.0" },
     { name = "numba", specifier = ">=0.66.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "xarray", extras = ["accel", "io", "parallel"], specifier = ">=2026.7.0" },
@@ -666,14 +666,14 @@ wheels = [
 
 [[package]]
 name = "isku"
-version = "0.3.0"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "xarray" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/35/26b9372a6e6823fa3465fb6da120520fd105ebb2ef8d916568a08c34ab8a/isku-0.3.0.tar.gz", hash = "sha256:527bbf33c3b02a82aec8a6319be2413b50721f9e455ed12b060d01f7139c0983", size = 5414, upload-time = "2026-05-15T18:09:08.879Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/26/580166d011ae8c88feccad683f7abc1851f7f8b5fb5ac47f73717b12b20f/isku-0.4.0.tar.gz", hash = "sha256:fec4cf3f27fc1e0c2e0e93c579a606709efb3f029fe50a967c2a00d82d6c5584", size = 5704, upload-time = "2026-07-24T21:09:07.464Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/52/d0/0899923f9d0d8de11bddda50edd95b0095bf265dd0a6109eb89c0c62af1e/isku-0.3.0-py3-none-any.whl", hash = "sha256:1f9cc1e19bc8898b520f00d535b105c0725751f935b7b51cd92d2dda520e914b", size = 6386, upload-time = "2026-05-15T18:09:09.893Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/23/bf7db8c403d875be24d345634e6db05839e2ceda1d7e889a392e07b0a1f6/isku-0.4.0-py3-none-any.whl", hash = "sha256:7dc3bee38a114ac862f96c74afdc4621259958a0841027ee46cb872058acc23f", size = 6646, upload-time = "2026-07-24T21:09:06.446Z" },
 ]
 
 [[package]]
