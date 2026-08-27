@@ -2088,7 +2088,7 @@ types = [
 
 [[package]]
 name = "xclim"
-version = "0.61.1"
+version = "0.62.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boltons" },
@@ -2110,9 +2110,9 @@ dependencies = [
     { name = "xarray" },
     { name = "yamale" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7c/31/8e7b119b9df1eacd6db37f36b2a8cdc760c58962150e3b250b3f76118734/xclim-0.61.1.tar.gz", hash = "sha256:8a093a7c8a0841fa5bf040ed358288e6b8c4dad782af07abc2f8cb6dc7d5f567", size = 906174, upload-time = "2026-05-25T16:10:28.604Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/00/36/156c7f3784e70b10a16f4a1345c8f153962c37cd6d335bf23f1b730e855f/xclim-0.62.0.tar.gz", hash = "sha256:78404c1136a4d59a6a69425be11ac4eb969d368101ac14bdebc52f6c458a3430", size = 886476, upload-time = "2026-08-17T20:56:07.829Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/33/f8/e35cdc16e01f773a74ad4fd971198b77243baa8423245eb0193c1aa5327d/xclim-0.61.1-py3-none-any.whl", hash = "sha256:cc70ebd77115597422228d7fce99c3a7d3c7f7e0f76bbbc3b99ba9edd9defab0", size = 384714, upload-time = "2026-05-25T16:10:26.504Z" },
+    { url = "https://files.pythonhosted.org/packages/36/85/96e5501dc9c16787b38b3762cb596302a3db84854bc104ad991077d35d54/xclim-0.62.0-py3-none-any.whl", hash = "sha256:8c0277f7060aebd3f2f8b92e59c2b8016b2c8d4a3cdac2e6f7ae0141210f899f", size = 386850, upload-time = "2026-08-17T20:56:06.104Z" },
 ]
 
 [[package]]
