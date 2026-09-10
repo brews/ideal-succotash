@@ -4,10 +4,10 @@ import pytest
 import xarray as xr
 
 from ideal_succotash.mortality.projection import (
+    _uclip_gufunc,
     mortality_effect_model,
     mortality_effect_model_gamma,
     uclip,
-    _uclip_gufunc,
 )
 
 
