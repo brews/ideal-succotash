@@ -4,8 +4,8 @@ import pytest
 import xarray as xr
 
 from ideal_succotash.mortality.transformation import (
-    _make_annual_tas,
     _make_30hbartlett_climtas,
+    _make_annual_tas,
     make_climtas,
     make_tas_20yrmean_annual_histogram,
 )

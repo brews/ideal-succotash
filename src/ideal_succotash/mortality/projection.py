@@ -2,7 +2,8 @@
 Logic for mortality impact and damage projection.
 """
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import isku
 import numba
@@ -15,8 +16,7 @@ def _maximum_accumulate(x):
     rmax = x[0]
     y = np.empty_like(x)
     for i, val in enumerate(x):
-        if val > rmax:
-            rmax = val
+        rmax = max(rmax, val)
         y[i] = rmax
     return y
 
@@ -107,7 +107,7 @@ def minimum_arg(x: xr.DataArray, *, dim="tas_bin", lmmt=10.0, ummt=30.0):
     return min_value, min_arg
 
 
-def _add_degree_coord(da: xr.DataArray, max_degrees: int | float) -> xr.DataArray:
+def _add_degree_coord(da: xr.DataArray, max_degrees: float) -> xr.DataArray:
     """
     Raises array to 1 ... max_degrees power, concatenating all together in a new "degree" coordinate.
     """
